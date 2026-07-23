@@ -57,7 +57,7 @@ export default function TotpSetupPage() {
   }, [session, router, startSetup]);
 
   function handleVerified() {
-    router.push("/");
+    router.push(showSetup ? "/?gmailTutorial=1" : "/");
     router.refresh();
   }
 

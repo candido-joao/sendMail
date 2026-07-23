@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -8,6 +9,7 @@ import { ComposeForm } from "@/components/ComposeForm";
 import { ClientForm } from "@/components/ClientForm";
 import { ClientList, type Client } from "@/components/ClientList";
 import { QueuePanel } from "@/components/QueuePanel";
+import { GmailTutorialModal } from "@/components/GmailTutorialModal";
 
 async function fetchClients(): Promise<Client[]> {
   const res = await fetch("/api/clients");
@@ -38,6 +40,25 @@ async function startCampaign(
 }
 
 export default function HomePage() {
+  return (
+    <Suspense fallback={null}>
+      <HomeContent />
+    </Suspense>
+  );
+}
+
+function HomeContent() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const [showGmailTutorial, setShowGmailTutorial] = useState(
+    () => searchParams.get("gmailTutorial") === "1"
+  );
+
+  function handleCloseGmailTutorial() {
+    setShowGmailTutorial(false);
+    router.replace("/");
+  }
+
   const { data: clients = [] } = useQuery({
     queryKey: ["clients"],
     queryFn: fetchClients,
@@ -93,6 +114,9 @@ export default function HomePage() {
 
   return (
     <div className="space-y-6">
+      {showGmailTutorial && (
+        <GmailTutorialModal onClose={handleCloseGmailTutorial} />
+      )}
       <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
         <div className="flex-1">
           <ComposeForm />
