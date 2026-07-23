@@ -1,4 +1,4 @@
-import { randomBytes, createCipheriv, createDecipheriv } from "crypto";
+import { randomBytes, createCipheriv, createDecipheriv, createHash } from "crypto";
 import { env } from "@/lib/env";
 
 const ALGO = "aes-256-gcm";
@@ -36,4 +36,9 @@ export function decrypt(stored: string): string {
     decipher.update(Buffer.from(ciphertextB64, "base64")),
     decipher.final(),
   ]).toString("utf8");
+}
+
+/** One-way hash for opaque tokens (trusted-device, email verification) before storing. */
+export function sha256Hex(input: string): string {
+  return createHash("sha256").update(input).digest("hex");
 }

@@ -4,8 +4,13 @@ export const emailSchema = z.string().trim().toLowerCase().email();
 export const passwordSchema = z.string().min(8).max(200);
 
 export const signupSchema = z.object({
+  name: z.string().trim().min(1).max(255),
   email: emailSchema,
   password: passwordSchema,
+});
+
+export const verifyEmailSchema = z.object({
+  token: z.string().min(1),
 });
 
 export const loginSchema = z.object({
@@ -18,7 +23,12 @@ export const totpCodeSchema = z.object({
 });
 
 export const clientSchema = z.object({
-  name: z.string().trim().min(1).max(255),
+  name: z
+    .string()
+    .trim()
+    .max(255)
+    .optional()
+    .transform((v) => (v ? v : null)),
   email: emailSchema,
 });
 
@@ -41,4 +51,8 @@ export const changePasswordSchema = z.object({
 
 export const startCampaignSchema = z.object({
   clientIds: z.array(z.string().uuid()).min(1),
+});
+
+export const deleteAccountSchema = z.object({
+  password: z.string().min(1),
 });

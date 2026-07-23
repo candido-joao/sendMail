@@ -28,8 +28,14 @@ export const queueStatusEnum = pgEnum("queue_status", [
 
 export const users = pgTable("users", {
   id: uuid("id").defaultRandom().primaryKey(),
+  name: varchar("name", { length: 255 }).notNull(),
   email: varchar("email", { length: 255 }).notNull().unique(),
   passwordHash: text("password_hash").notNull(),
+  emailVerified: boolean("email_verified").notNull().default(false),
+  emailVerificationTokenHash: text("email_verification_token_hash"),
+  emailVerificationExpiresAt: timestamp("email_verification_expires_at", {
+    withTimezone: true,
+  }),
   totpSecretEncrypted: text("totp_secret_encrypted"),
   totpEnabled: boolean("totp_enabled").notNull().default(false),
   createdAt: timestamp("created_at", { withTimezone: true })
@@ -86,7 +92,7 @@ export const clients = pgTable(
     userId: uuid("user_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
-    name: varchar("name", { length: 255 }).notNull(),
+    name: varchar("name", { length: 255 }),
     email: varchar("email", { length: 255 }).notNull(),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()

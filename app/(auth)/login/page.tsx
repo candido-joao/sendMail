@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
+import { PasswordInput } from "@/components/ui/PasswordInput";
 import { Button } from "@/components/ui/Button";
 
 export default function LoginPage() {
@@ -58,8 +59,7 @@ export default function LoginPage() {
           <label className="mb-1 block text-sm text-zinc-600 dark:text-zinc-400">
             Senha
           </label>
-          <Input
-            type="password"
+          <PasswordInput
             required
             value={password}
             onChange={(e) => setPassword(e.target.value)}

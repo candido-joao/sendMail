@@ -52,6 +52,13 @@ export async function POST(req: Request) {
 
   await recordAttempt(rateLimitKey, true);
 
+  if (!user.emailVerified) {
+    return NextResponse.json(
+      { error: "Confirme seu e-mail antes de entrar. Verifique sua caixa de entrada." },
+      { status: 403 }
+    );
+  }
+
   if (!user.totpEnabled) {
     await setSessionCookie({ userId: user.id, scope: "pending_totp" });
     return NextResponse.json({ next: "totp-setup" });

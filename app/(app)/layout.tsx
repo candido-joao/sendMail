@@ -1,7 +1,7 @@
 import { ReactNode } from "react";
 import { redirect } from "next/navigation";
 import { eq } from "drizzle-orm";
-import { getSession } from "@/lib/auth/session";
+import { getSession, clearSessionCookie } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import { users } from "@/lib/db/schema";
 import { NavBar } from "@/components/NavBar";
@@ -17,18 +17,26 @@ export default async function AppLayout({
   }
 
   const [user] = await db
-    .select({ totpEnabled: users.totpEnabled, email: users.email })
+    .select({ totpEnabled: users.totpEnabled, name: users.name })
     .from(users)
     .where(eq(users.id, session.userId))
     .limit(1);
 
-  if (!user || !user.totpEnabled) {
+  if (!user) {
+    // Session references a user that no longer exists (deleted account,
+    // stale/orphaned cookie from a reset DB) — clear it so the browser
+    // stops sending a dead session on every request.
+    await clearSessionCookie();
+    redirect("/login");
+  }
+
+  if (!user.totpEnabled) {
     redirect("/totp-setup");
   }
 
   return (
     <div className="flex min-h-full flex-1 flex-col bg-zinc-50 dark:bg-zinc-950">
-      <NavBar email={user.email} />
+      <NavBar name={user.name} />
       <main className="mx-auto w-full max-w-4xl flex-1 px-4 py-8">
         {children}
       </main>

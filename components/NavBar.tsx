@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
-export function NavBar({ email }: { email: string }) {
+export function NavBar({ name }: { name: string }) {
   const router = useRouter();
 
   async function handleLogout() {
@@ -27,7 +27,7 @@ export function NavBar({ email }: { email: string }) {
           </Link>
         </nav>
         <div className="flex items-center gap-3 text-sm text-zinc-600 dark:text-zinc-400">
-          <span>{email}</span>
+          <span>{name}</span>
           <button
             onClick={handleLogout}
             className="font-medium text-zinc-900 underline dark:text-zinc-50"

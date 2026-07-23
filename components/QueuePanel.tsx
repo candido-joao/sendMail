@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/Badge";
 type QueueItem = {
   id: string;
   clientId: string;
-  clientName: string;
+  clientName: string | null;
   clientEmail: string;
   status: "pending" | "sending" | "sent" | "failed";
   errorMessage: string | null;
@@ -80,6 +80,9 @@ export function QueuePanel({
   const processedCount = snapshot.items.filter(
     (i) => i.status === "sent" || i.status === "failed"
   ).length;
+  // Confirmed sends drop out of view — only what's still pending/sending
+  // or needs attention (failed) stays in the visible queue.
+  const visibleItems = snapshot.items.filter((i) => i.status !== "sent");
 
   return (
     <div className="space-y-3">
@@ -87,17 +90,30 @@ export function QueuePanel({
         {processedCount} / {snapshot.items.length} processados
         {snapshot.done && " — concluído"}
       </p>
-      <ul className="divide-y divide-zinc-200 dark:divide-zinc-800">
-        {snapshot.items.map((item) => (
+      <ul className="max-h-64 space-y-0 divide-y divide-zinc-200 overflow-y-auto dark:divide-zinc-800">
+        {visibleItems.length === 0 && (
+          <li className="py-2 text-sm text-zinc-500 dark:text-zinc-400">
+            Tudo enviado.
+          </li>
+        )}
+        {visibleItems.map((item) => (
           <li
             key={item.id}
             className="flex items-center justify-between gap-3 py-2"
           >
             <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-medium text-zinc-900 dark:text-zinc-50">
-                {item.clientName}
-              </p>
-              <p className="truncate text-xs text-zinc-500 dark:text-zinc-400">
+              {item.clientName && (
+                <p className="truncate text-sm font-medium text-zinc-900 dark:text-zinc-50">
+                  {item.clientName}
+                </p>
+              )}
+              <p
+                className={
+                  item.clientName
+                    ? "truncate text-xs text-zinc-500 dark:text-zinc-400"
+                    : "truncate text-sm font-medium text-zinc-900 dark:text-zinc-50"
+                }
+              >
                 {item.clientEmail}
               </p>
               {item.errorMessage && (

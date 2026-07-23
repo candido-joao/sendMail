@@ -38,13 +38,9 @@ export function ClientForm({ onAdded }: { onAdded: (client: Client) => void }) {
     <form onSubmit={handleSubmit} className="flex flex-wrap items-end gap-2">
       <div className="flex-1 min-w-[140px]">
         <label className="mb-1 block text-xs text-zinc-600 dark:text-zinc-400">
-          Nome
+          Nome (opcional)
         </label>
-        <Input
-          required
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-        />
+        <Input value={name} onChange={(e) => setName(e.target.value)} />
       </div>
       <div className="flex-1 min-w-[180px]">
         <label className="mb-1 block text-xs text-zinc-600 dark:text-zinc-400">

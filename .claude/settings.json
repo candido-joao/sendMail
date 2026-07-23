@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(curl -s -D - -o /dev/null -b /tmp/cookies.txt http://localhost:3000/api/auth/session)",
+      "Bash(echo \"exit: $?\")",
+      "Bash(node -e 'console.log\\(require\\('\\\\''crypto'\\\\''\\).createHash\\('\\\\''sha256'\\\\''\\).update\\('\\\\''__TRACKED_VAR__'\\\\''\\).digest\\('\\\\''hex'\\\\''\\)\\)')",
+      "Bash(curl -s -c /tmp/cookies.txt -b /tmp/cookies.txt -X POST http://localhost:3000/api/clients -H 'Content-Type: application/json' -d '{\"name\":\"\",\"email\":\"semnome@example.com\"}')",
+      "Bash(curl -s -c /tmp/cookies.txt -b /tmp/cookies.txt -X POST http://localhost:3000/api/clients -H 'Content-Type: application/json' -d '{\"email\":\"semnome2@example.com\"}')",
+      "Bash(curl -s -o /dev/null -w \"login: %{http_code}\\\\n\" http://localhost:3000/login)",
+      "Bash(curl -s -X POST http://localhost:3000/api/auth/signup -H 'Content-Type: application/json' -d '{\"name\":\"Del Test\",\"email\":\"__TRACKED_VAR__\",\"password\":\"supersecret123\"}')",
+      "Bash(curl -s -c /tmp/cookies.txt -b /tmp/cookies.txt -X POST http://localhost:3000/api/clients -H \"Content-Type: application/json\" -d '{\"name\":\"Cliente X\",\"email\":\"clientex@example.com\"}')",
+      "Bash(curl -s -X DELETE -b /tmp/cookies.txt http://localhost:3000/api/settings/account -H \"Content-Type: application/json\" -d '{\"password\":\"wrongpassword\"}')",
+      "Bash(curl -s -X DELETE -b /tmp/cookies.txt http://localhost:3000/api/settings/account -H \"Content-Type: application/json\" -d '{\"password\":\"supersecret123\"}')"
+    ]
+  }
+}

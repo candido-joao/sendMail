@@ -38,6 +38,12 @@ export default function HomePage() {
     });
   }
 
+  function toggleSelectAll() {
+    setSelectedIds((prev) =>
+      prev.size === clients.length ? new Set() : new Set(clients.map((c) => c.id))
+    );
+  }
+
   async function handleStart() {
     setError(null);
     setStarting(true);
@@ -69,7 +75,39 @@ export default function HomePage() {
 
   return (
     <div className="space-y-6">
-      <ComposeForm />
+      <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
+        <div className="flex-1">
+          <ComposeForm />
+        </div>
+        <div className="lg:sticky lg:top-4 lg:w-64 lg:shrink-0">
+          <Card>
+            <p className="mb-2 text-sm text-zinc-500 dark:text-zinc-400">
+              {selectedIds.size} clientes selecionados
+            </p>
+            <Button
+              onClick={handleStart}
+              disabled={
+                starting || selectedIds.size === 0 || activeCampaignId !== null
+              }
+              className="w-full"
+            >
+              {starting ? "Enviando…" : "Enviar"}
+            </Button>
+            {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
+            {activeCampaignId && (
+              <div className="mt-4 border-t border-zinc-200 pt-4 dark:border-zinc-800">
+                <h2 className="mb-2 text-sm font-semibold text-zinc-900 dark:text-zinc-50">
+                  Fila de envio
+                </h2>
+                <QueuePanel
+                  campaignId={activeCampaignId}
+                  onDone={handleCampaignDone}
+                />
+              </div>
+            )}
+          </Card>
+        </div>
+      </div>
 
       <Card>
         <h2 className="mb-3 text-lg font-semibold text-zinc-900 dark:text-zinc-50">
@@ -82,32 +120,8 @@ export default function HomePage() {
           clients={clients}
           selectedIds={selectedIds}
           onToggle={toggleSelected}
+          onToggleAll={toggleSelectAll}
         />
-      </Card>
-
-      <Card>
-        <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
-            Disparo
-          </h2>
-          <Button
-            onClick={handleStart}
-            disabled={
-              starting || selectedIds.size === 0 || activeCampaignId !== null
-            }
-          >
-            {starting
-              ? "Iniciando…"
-              : `Iniciar disparo para ${selectedIds.size} clientes`}
-          </Button>
-        </div>
-        {error && <p className="mb-3 text-sm text-red-600">{error}</p>}
-        {activeCampaignId && (
-          <QueuePanel
-            campaignId={activeCampaignId}
-            onDone={handleCampaignDone}
-          />
-        )}
       </Card>
     </div>
   );

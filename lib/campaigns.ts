@@ -8,7 +8,7 @@ export type CampaignSnapshot = {
   items: {
     id: string;
     clientId: string;
-    clientName: string;
+    clientName: string | null;
     clientEmail: string;
     status: "pending" | "sending" | "sent" | "failed";
     errorMessage: string | null;

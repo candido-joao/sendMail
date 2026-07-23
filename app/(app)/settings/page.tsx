@@ -1,15 +1,20 @@
 "use client";
 
 import { useEffect, useState, FormEvent } from "react";
+import { useRouter } from "next/navigation";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
+import { PasswordInput } from "@/components/ui/PasswordInput";
 import { Button } from "@/components/ui/Button";
+import { TotpConfirmModal } from "@/components/TotpConfirmModal";
+import { DeleteAccountModal } from "@/components/DeleteAccountModal";
 
 export default function SettingsPage() {
   return (
     <div className="space-y-6">
       <GmailSettingsCard />
       <ChangePasswordCard />
+      <DeleteAccountCard />
     </div>
   );
 }
@@ -85,8 +90,7 @@ function GmailSettingsCard() {
               <span className="text-zinc-400">(configurada — deixe em branco para manter)</span>
             )}
           </label>
-          <Input
-            type="password"
+          <PasswordInput
             placeholder={hasAppPassword ? "••••••••••••••••" : ""}
             value={gmailAppPassword}
             onChange={(e) => setGmailAppPassword(e.target.value)}
@@ -114,34 +118,38 @@ function GmailSettingsCard() {
 function ChangePasswordCard() {
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
-  const [code, setCode] = useState("");
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [showTotpModal, setShowTotpModal] = useState(false);
 
-  async function handleSubmit(e: FormEvent) {
+  function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setMessage(null);
     setError(null);
-    setLoading(true);
-    try {
-      const res = await fetch("/api/settings/password", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ currentPassword, newPassword, code }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        setError(data.error ?? "Falha ao trocar senha.");
-        return;
-      }
-      setMessage("Senha alterada com sucesso.");
-      setCurrentPassword("");
-      setNewPassword("");
-      setCode("");
-    } finally {
-      setLoading(false);
+    setShowTotpModal(true);
+  }
+
+  async function handleConfirm(code: string) {
+    const res = await fetch("/api/settings/password", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ currentPassword, newPassword, code }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      return { ok: false, error: data.error ?? "Falha ao trocar senha." };
     }
+    setShowTotpModal(false);
+    setMessage("Senha alterada com sucesso.");
+    setCurrentPassword("");
+    setNewPassword("");
+    return { ok: true };
+  }
+
+  function handleCloseModal() {
+    // Closing without confirming means the password change never happens.
+    setShowTotpModal(false);
+    setError("Troca de senha cancelada: confirmação 2FA não concluída.");
   }
 
   return (
@@ -150,16 +158,14 @@ function ChangePasswordCard() {
         Trocar senha de login
       </h2>
       <p className="mb-4 text-sm text-zinc-500 dark:text-zinc-400">
-        Sempre exige um código do seu aplicativo autenticador, mesmo neste
-        dispositivo.
+        Sempre exige confirmação por 2FA, mesmo neste dispositivo.
       </p>
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
           <label className="mb-1 block text-sm text-zinc-600 dark:text-zinc-400">
             Senha atual
           </label>
-          <Input
-            type="password"
+          <PasswordInput
             required
             value={currentPassword}
             onChange={(e) => setCurrentPassword(e.target.value)}
@@ -169,33 +175,65 @@ function ChangePasswordCard() {
           <label className="mb-1 block text-sm text-zinc-600 dark:text-zinc-400">
             Nova senha
           </label>
-          <Input
-            type="password"
+          <PasswordInput
             required
             minLength={8}
             value={newPassword}
             onChange={(e) => setNewPassword(e.target.value)}
           />
         </div>
-        <div>
-          <label className="mb-1 block text-sm text-zinc-600 dark:text-zinc-400">
-            Código 2FA
-          </label>
-          <Input
-            inputMode="numeric"
-            pattern="\d{6}"
-            maxLength={6}
-            required
-            value={code}
-            onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
-          />
-        </div>
         {error && <p className="text-sm text-red-600">{error}</p>}
         {message && <p className="text-sm text-green-600">{message}</p>}
-        <Button type="submit" disabled={loading}>
-          {loading ? "Salvando…" : "Trocar senha"}
-        </Button>
+        <Button type="submit">Trocar senha</Button>
       </form>
+      {showTotpModal && (
+        <TotpConfirmModal
+          title="Confirme a troca de senha"
+          description="Digite o código do seu aplicativo autenticador para concluir a troca de senha."
+          onConfirm={handleConfirm}
+          onClose={handleCloseModal}
+        />
+      )}
+    </Card>
+  );
+}
+
+function DeleteAccountCard() {
+  const router = useRouter();
+  const [showModal, setShowModal] = useState(false);
+
+  async function handleConfirm(password: string) {
+    const res = await fetch("/api/settings/account", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ password }),
+    });
+    if (!res.ok) {
+      const data = await res.json();
+      return { ok: false, error: data.error ?? "Falha ao excluir conta." };
+    }
+    router.push("/signup");
+    router.refresh();
+    return { ok: true };
+  }
+
+  return (
+    <Card className="border-red-300 dark:border-red-900">
+      <h2 className="mb-1 text-lg font-semibold text-red-600">
+        Excluir conta
+      </h2>
+      <p className="mb-4 text-sm text-zinc-500 dark:text-zinc-400">
+        Remove permanentemente seus dados, esta ação não pode ser desfeita.
+      </p>
+      <Button variant="danger" onClick={() => setShowModal(true)}>
+        Excluir minha conta
+      </Button>
+      {showModal && (
+        <DeleteAccountModal
+          onConfirm={handleConfirm}
+          onClose={() => setShowModal(false)}
+        />
+      )}
     </Card>
   );
 }

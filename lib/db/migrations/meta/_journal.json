@@ -8,6 +8,20 @@
       "when": 1784767756332,
       "tag": "0000_majestic_wong",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1784769953570,
+      "tag": "0001_premium_ogun",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1784771071678,
+      "tag": "0002_tearful_black_crow",
+      "breakpoints": true
     }
   ]
 }
