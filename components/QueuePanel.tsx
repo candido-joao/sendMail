@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Badge } from "@/components/ui/Badge";
 
 type QueueItem = {
@@ -22,6 +23,13 @@ type Snapshot = {
 
 const POLL_INTERVAL_MS = 700;
 
+async function processTick(campaignId: string): Promise<Snapshot> {
+  const res = await fetch(`/api/campaigns/${campaignId}/process`, {
+    method: "POST",
+  });
+  return res.json();
+}
+
 export function QueuePanel({
   campaignId,
   onDone,
@@ -29,45 +37,25 @@ export function QueuePanel({
   campaignId: string;
   onDone: () => void;
 }) {
-  const [snapshot, setSnapshot] = useState<Snapshot | null>(null);
   const onDoneRef = useRef(onDone);
-
   useEffect(() => {
     onDoneRef.current = onDone;
   }, [onDone]);
 
+  const { data: snapshot } = useQuery({
+    queryKey: ["campaign-process", campaignId],
+    queryFn: () => processTick(campaignId),
+    refetchInterval: (query) =>
+      query.state.data?.done ? false : POLL_INTERVAL_MS,
+  });
+
+  const notifiedRef = useRef(false);
   useEffect(() => {
-    let cancelled = false;
-    let done = false;
-    let timer: ReturnType<typeof setTimeout>;
-
-    async function tick() {
-      if (cancelled || done) return;
-      try {
-        const res = await fetch(`/api/campaigns/${campaignId}/process`, {
-          method: "POST",
-        });
-        if (res.ok) {
-          const data: Snapshot = await res.json();
-          if (!cancelled) setSnapshot(data);
-          if (data.done) {
-            done = true;
-            onDoneRef.current();
-            return;
-          }
-        }
-      } catch {
-        // transient network error: keep polling
-      }
-      if (!cancelled) timer = setTimeout(tick, POLL_INTERVAL_MS);
+    if (snapshot?.done && !notifiedRef.current) {
+      notifiedRef.current = true;
+      onDoneRef.current();
     }
-
-    tick();
-    return () => {
-      cancelled = true;
-      clearTimeout(timer);
-    };
-  }, [campaignId]);
+  }, [snapshot?.done]);
 
   if (!snapshot) {
     return (
@@ -80,8 +68,6 @@ export function QueuePanel({
   const processedCount = snapshot.items.filter(
     (i) => i.status === "sent" || i.status === "failed"
   ).length;
-  // Confirmed sends drop out of view — only what's still pending/sending
-  // or needs attention (failed) stays in the visible queue.
   const visibleItems = snapshot.items.filter((i) => i.status !== "sent");
 
   return (

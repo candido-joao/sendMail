@@ -16,9 +16,6 @@ export const campaignStatusEnum = pgEnum("campaign_status", [
   "completed",
 ]);
 
-// "sending" is a short-lived transient state used to atomically claim a row
-// (via FOR UPDATE SKIP LOCKED) without holding a DB transaction open for the
-// duration of the outbound SMTP call.
 export const queueStatusEnum = pgEnum("queue_status", [
   "pending",
   "sending",

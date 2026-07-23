@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, FormEvent } from "react";
+import { useMutation } from "@tanstack/react-query";
 import Image from "next/image";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
@@ -10,30 +11,27 @@ type Props = {
   onVerified: () => void;
 };
 
+async function verifyTotp(code: string) {
+  const res = await fetch("/api/auth/totp/verify", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ code }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error ?? "Código incorreto.");
+  return data;
+}
+
 export function TotpQrSetup({ qrDataUrl, onVerified }: Props) {
   const [code, setCode] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  const mutation = useMutation({
+    mutationFn: verifyTotp,
+    onSuccess: onVerified,
+  });
 
-  async function handleSubmit(e: FormEvent) {
+  function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    setError(null);
-    setLoading(true);
-    try {
-      const res = await fetch("/api/auth/totp/verify", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        setError(data.error ?? "Código incorreto.");
-        return;
-      }
-      onVerified();
-    } finally {
-      setLoading(false);
-    }
+    mutation.mutate(code);
   }
 
   return (
@@ -69,9 +67,11 @@ export function TotpQrSetup({ qrDataUrl, onVerified }: Props) {
             autoFocus
           />
         </div>
-        {error && <p className="text-sm text-red-600">{error}</p>}
-        <Button type="submit" disabled={loading} className="w-full">
-          {loading ? "Verificando…" : "Confirmar"}
+        {mutation.isError && (
+          <p className="text-sm text-red-600">{mutation.error.message}</p>
+        )}
+        <Button type="submit" disabled={mutation.isPending} className="w-full">
+          {mutation.isPending ? "Verificando…" : "Confirmar"}
         </Button>
       </form>
     </div>

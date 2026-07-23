@@ -2,15 +2,21 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useMutation } from "@tanstack/react-query";
+
+async function logout() {
+  await fetch("/api/auth/logout", { method: "POST" });
+}
 
 export function NavBar({ name }: { name: string }) {
   const router = useRouter();
-
-  async function handleLogout() {
-    await fetch("/api/auth/logout", { method: "POST" });
-    router.push("/login");
-    router.refresh();
-  }
+  const mutation = useMutation({
+    mutationFn: logout,
+    onSuccess: () => {
+      router.push("/login");
+      router.refresh();
+    },
+  });
 
   return (
     <header className="border-b border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950">
@@ -29,7 +35,7 @@ export function NavBar({ name }: { name: string }) {
         <div className="flex items-center gap-3 text-sm text-zinc-600 dark:text-zinc-400">
           <span>{name}</span>
           <button
-            onClick={handleLogout}
+            onClick={() => mutation.mutate()}
             className="font-medium text-zinc-900 underline dark:text-zinc-50"
           >
             Sair

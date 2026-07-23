@@ -56,7 +56,6 @@ export async function clearSessionCookie() {
   store.delete(SESSION_COOKIE_NAME);
 }
 
-/** Reads and verifies the session from the request cookie jar (server components/route handlers). */
 export async function getSession(): Promise<SessionPayload | null> {
   const store = await cookies();
   const token = store.get(SESSION_COOKIE_NAME)?.value;
@@ -64,7 +63,6 @@ export async function getSession(): Promise<SessionPayload | null> {
   return verifySessionToken(token);
 }
 
-/** Convenience helper for route handlers: returns a full-scope session or null. */
 export async function getFullSession(): Promise<SessionPayload | null> {
   const session = await getSession();
   if (!session || session.scope !== "full") return null;

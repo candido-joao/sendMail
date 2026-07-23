@@ -7,7 +7,6 @@ type RateLimitOptions = {
   maxAttempts: number;
 };
 
-/** Returns true if the caller is still allowed to attempt the action. */
 export async function checkRateLimit(
   key: string,
   opts: RateLimitOptions

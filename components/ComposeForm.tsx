@@ -1,45 +1,63 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { Input } from "@/components/ui/Input";
 import { Card } from "@/components/ui/Card";
 
 const SAVE_DEBOUNCE_MS = 800;
 
+type EmailBody = { subject: string; bodyText: string };
+
+async function fetchEmailBody(): Promise<EmailBody> {
+  const res = await fetch("/api/email-body");
+  return res.json();
+}
+
+async function saveEmailBody(body: EmailBody): Promise<void> {
+  await fetch("/api/email-body", {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+}
+
 export function ComposeForm() {
+  const { data } = useQuery({
+    queryKey: ["email-body"],
+    queryFn: fetchEmailBody,
+  });
   const [subject, setSubject] = useState("");
   const [bodyText, setBodyText] = useState("");
-  const [loaded, setLoaded] = useState(false);
+  const [loadedData, setLoadedData] = useState<EmailBody | undefined>(
+    undefined
+  );
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved">(
     "idle"
   );
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const saveMutation = useMutation({ mutationFn: saveEmailBody });
+  const loaded = loadedData !== undefined;
 
-  useEffect(() => {
-    fetch("/api/email-body")
-      .then((res) => res.json())
-      .then((data) => {
-        setSubject(data.subject ?? "");
-        setBodyText(data.bodyText ?? "");
-        setLoaded(true);
-      });
-  }, []);
+  if (data && data !== loadedData) {
+    setLoadedData(data);
+    setSubject(data.subject ?? "");
+    setBodyText(data.bodyText ?? "");
+  }
 
   useEffect(() => {
     if (!loaded) return;
     if (saveTimer.current) clearTimeout(saveTimer.current);
-    saveTimer.current = setTimeout(async () => {
-      await fetch("/api/email-body", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ subject, bodyText }),
-      });
-      setSaveState("saved");
+    saveTimer.current = setTimeout(() => {
+      saveMutation.mutate(
+        { subject, bodyText },
+        { onSuccess: () => setSaveState("saved") }
+      );
     }, SAVE_DEBOUNCE_MS);
     return () => {
       if (saveTimer.current) clearTimeout(saveTimer.current);
     };
-  }, [subject, bodyText, loaded]);
+  }, [subject, bodyText, loaded, saveMutation]);
 
   function handleSubjectChange(value: string) {
     setSubject(value);

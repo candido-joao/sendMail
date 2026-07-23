@@ -38,7 +38,6 @@ export function decrypt(stored: string): string {
   ]).toString("utf8");
 }
 
-/** One-way hash for opaque tokens (trusted-device, email verification) before storing. */
 export function sha256Hex(input: string): string {
   return createHash("sha256").update(input).digest("hex");
 }

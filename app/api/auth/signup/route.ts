@@ -48,7 +48,5 @@ export async function POST(req: Request) {
   const verifyUrl = `${origin}/verify-email?token=${token}`;
   await sendVerificationEmail({ to: email, name, verifyUrl });
 
-  // No session is created here: the user must confirm their e-mail before
-  // their first login is allowed.
   return NextResponse.json({ email });
 }

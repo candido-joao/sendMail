@@ -49,8 +49,6 @@ export async function POST(
     .set({ lastProcessedAt: new Date() })
     .where(eq(campaigns.id, campaignId));
 
-  // Atomically claim the next pending item so overlapping polling calls
-  // (e.g. duplicate tabs) never send to the same client twice.
   const claimed = await db.execute<{ id: string; client_id: string }>(sql`
     UPDATE send_queue
     SET status = 'sending'

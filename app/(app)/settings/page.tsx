@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState, FormEvent } from "react";
+import { useState, FormEvent } from "react";
 import { useRouter } from "next/navigation";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { PasswordInput } from "@/components/ui/PasswordInput";
@@ -19,51 +20,61 @@ export default function SettingsPage() {
   );
 }
 
+type Settings = {
+  gmailUser: string | null;
+  senderName: string | null;
+  hasAppPassword: boolean;
+};
+
+async function fetchSettings(): Promise<Settings> {
+  const res = await fetch("/api/settings");
+  return res.json();
+}
+
+async function saveSettings(body: Record<string, string>) {
+  const res = await fetch("/api/settings", {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error ?? "Falha ao salvar.");
+  return data;
+}
+
 function GmailSettingsCard() {
+  const { data } = useQuery({ queryKey: ["settings"], queryFn: fetchSettings });
   const [gmailUser, setGmailUser] = useState("");
   const [senderName, setSenderName] = useState("");
   const [gmailAppPassword, setGmailAppPassword] = useState("");
   const [hasAppPassword, setHasAppPassword] = useState(false);
+  const [loadedData, setLoadedData] = useState<Settings | undefined>(
+    undefined
+  );
   const [message, setMessage] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  const mutation = useMutation({ mutationFn: saveSettings });
 
-  useEffect(() => {
-    fetch("/api/settings")
-      .then((res) => res.json())
-      .then((data) => {
-        setGmailUser(data.gmailUser ?? "");
-        setSenderName(data.senderName ?? "");
-        setHasAppPassword(Boolean(data.hasAppPassword));
-      });
-  }, []);
+  if (data && data !== loadedData) {
+    setLoadedData(data);
+    setGmailUser(data.gmailUser ?? "");
+    setSenderName(data.senderName ?? "");
+    setHasAppPassword(Boolean(data.hasAppPassword));
+  }
 
-  async function handleSubmit(e: FormEvent) {
+  function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setMessage(null);
-    setError(null);
-    setLoading(true);
-    try {
-      const body: Record<string, string> = { gmailUser, senderName };
-      if (gmailAppPassword.trim()) {
-        body.gmailAppPassword = gmailAppPassword.trim();
-      }
-      const res = await fetch("/api/settings", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        setError(data.error ?? "Falha ao salvar.");
-        return;
-      }
-      if (gmailAppPassword.trim()) setHasAppPassword(true);
-      setGmailAppPassword("");
-      setMessage("Configurações salvas.");
-    } finally {
-      setLoading(false);
+    const body: Record<string, string> = { gmailUser, senderName };
+    if (gmailAppPassword.trim()) {
+      body.gmailAppPassword = gmailAppPassword.trim();
     }
+    mutation.mutate(body, {
+      onSuccess: () => {
+        if (gmailAppPassword.trim()) setHasAppPassword(true);
+        setGmailAppPassword("");
+        setMessage("Configurações salvas.");
+      },
+    });
   }
 
   return (
@@ -105,14 +116,31 @@ function GmailSettingsCard() {
             onChange={(e) => setSenderName(e.target.value)}
           />
         </div>
-        {error && <p className="text-sm text-red-600">{error}</p>}
+        {mutation.isError && (
+          <p className="text-sm text-red-600">{mutation.error.message}</p>
+        )}
         {message && <p className="text-sm text-green-600">{message}</p>}
-        <Button type="submit" disabled={loading}>
-          {loading ? "Salvando…" : "Salvar"}
+        <Button type="submit" disabled={mutation.isPending}>
+          {mutation.isPending ? "Salvando…" : "Salvar"}
         </Button>
       </form>
     </Card>
   );
+}
+
+async function changePassword(body: {
+  currentPassword: string;
+  newPassword: string;
+  code: string;
+}) {
+  const res = await fetch("/api/settings/password", {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error ?? "Falha ao trocar senha.");
+  return data;
 }
 
 function ChangePasswordCard() {
@@ -121,6 +149,7 @@ function ChangePasswordCard() {
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [showTotpModal, setShowTotpModal] = useState(false);
+  const mutation = useMutation({ mutationFn: changePassword });
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -130,24 +159,22 @@ function ChangePasswordCard() {
   }
 
   async function handleConfirm(code: string) {
-    const res = await fetch("/api/settings/password", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ currentPassword, newPassword, code }),
-    });
-    const data = await res.json();
-    if (!res.ok) {
-      return { ok: false, error: data.error ?? "Falha ao trocar senha." };
+    try {
+      await mutation.mutateAsync({ currentPassword, newPassword, code });
+      setShowTotpModal(false);
+      setMessage("Senha alterada com sucesso.");
+      setCurrentPassword("");
+      setNewPassword("");
+      return { ok: true };
+    } catch (err) {
+      return {
+        ok: false,
+        error: err instanceof Error ? err.message : "Falha ao trocar senha.",
+      };
     }
-    setShowTotpModal(false);
-    setMessage("Senha alterada com sucesso.");
-    setCurrentPassword("");
-    setNewPassword("");
-    return { ok: true };
   }
 
   function handleCloseModal() {
-    // Closing without confirming means the password change never happens.
     setShowTotpModal(false);
     setError("Troca de senha cancelada: confirmação 2FA não concluída.");
   }
@@ -198,23 +225,35 @@ function ChangePasswordCard() {
   );
 }
 
+async function deleteAccount(password: string) {
+  const res = await fetch("/api/settings/account", {
+    method: "DELETE",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ password }),
+  });
+  if (!res.ok) {
+    const data = await res.json();
+    throw new Error(data.error ?? "Falha ao excluir conta.");
+  }
+}
+
 function DeleteAccountCard() {
   const router = useRouter();
   const [showModal, setShowModal] = useState(false);
+  const mutation = useMutation({ mutationFn: deleteAccount });
 
   async function handleConfirm(password: string) {
-    const res = await fetch("/api/settings/account", {
-      method: "DELETE",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ password }),
-    });
-    if (!res.ok) {
-      const data = await res.json();
-      return { ok: false, error: data.error ?? "Falha ao excluir conta." };
+    try {
+      await mutation.mutateAsync(password);
+      router.push("/signup");
+      router.refresh();
+      return { ok: true };
+    } catch (err) {
+      return {
+        ok: false,
+        error: err instanceof Error ? err.message : "Falha ao excluir conta.",
+      };
     }
-    router.push("/signup");
-    router.refresh();
-    return { ok: true };
   }
 
   return (

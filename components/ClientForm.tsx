@@ -1,37 +1,37 @@
 "use client";
 
 import { useState, FormEvent } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
-import type { Client } from "@/components/ClientList";
 
-export function ClientForm({ onAdded }: { onAdded: (client: Client) => void }) {
+async function addClient(body: { name: string; email: string }) {
+  const res = await fetch("/api/clients", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error ?? "Falha ao adicionar cliente.");
+  return data.client;
+}
+
+export function ClientForm() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-
-  async function handleSubmit(e: FormEvent) {
-    e.preventDefault();
-    setError(null);
-    setLoading(true);
-    try {
-      const res = await fetch("/api/clients", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        setError(data.error ?? "Falha ao adicionar cliente.");
-        return;
-      }
-      onAdded(data.client);
+  const queryClient = useQueryClient();
+  const mutation = useMutation({
+    mutationFn: addClient,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["clients"] });
       setName("");
       setEmail("");
-    } finally {
-      setLoading(false);
-    }
+    },
+  });
+
+  function handleSubmit(e: FormEvent) {
+    e.preventDefault();
+    mutation.mutate({ name, email });
   }
 
   return (
@@ -53,10 +53,12 @@ export function ClientForm({ onAdded }: { onAdded: (client: Client) => void }) {
           onChange={(e) => setEmail(e.target.value)}
         />
       </div>
-      <Button type="submit" variant="secondary" disabled={loading}>
+      <Button type="submit" variant="secondary" disabled={mutation.isPending}>
         Adicionar
       </Button>
-      {error && <p className="w-full text-sm text-red-600">{error}</p>}
+      {mutation.isError && (
+        <p className="w-full text-sm text-red-600">{mutation.error.message}</p>
+      )}
     </form>
   );
 }

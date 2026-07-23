@@ -21,8 +21,6 @@ export async function GET() {
     .limit(1);
 
   if (!user) {
-    // Orphaned session (user no longer exists) — clear it so the browser
-    // stops sending a dead cookie on subsequent requests.
     await clearSessionCookie();
     return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
   }

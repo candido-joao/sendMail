@@ -31,12 +31,6 @@ export async function sendSingleEmail(params: SendEmailParams): Promise<void> {
   });
 }
 
-/**
- * Transactional emails (account verification) use a dedicated system Gmail
- * account, never a user's own send_settings — those aren't configured yet
- * at signup time. Falls back to logging the link when unconfigured, so
- * local dev works without a real system mailbox.
- */
 export async function sendVerificationEmail(params: {
   to: string;
   name: string;

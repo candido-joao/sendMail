@@ -4,7 +4,6 @@ import { encrypt, decrypt } from "@/lib/crypto";
 
 const ISSUER = "SendMail";
 
-// Allow one 30s step of clock drift in either direction.
 const EPOCH_TOLERANCE: [number, number] = [30, 30];
 
 export function generateTotpSecret(): string {

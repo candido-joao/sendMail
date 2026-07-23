@@ -59,7 +59,6 @@ export async function PUT(req: Request) {
     );
   }
 
-  // Always requires a fresh TOTP code, regardless of trusted-device status.
   const secret = decryptTotpSecret(user.totpSecretEncrypted);
   const validCode = await verifyTotpCode(secret, parsed.data.code);
   if (!validCode) {

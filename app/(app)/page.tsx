@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { ComposeForm } from "@/components/ComposeForm";
@@ -8,26 +9,57 @@ import { ClientForm } from "@/components/ClientForm";
 import { ClientList, type Client } from "@/components/ClientList";
 import { QueuePanel } from "@/components/QueuePanel";
 
+async function fetchClients(): Promise<Client[]> {
+  const res = await fetch("/api/clients");
+  const data = await res.json();
+  return data.clients ?? [];
+}
+
+async function fetchActiveCampaignId(): Promise<string | null> {
+  const res = await fetch("/api/campaigns");
+  const data = await res.json();
+  return data.campaign?.id ?? null;
+}
+
+async function startCampaign(
+  clientIds: string[]
+): Promise<{ campaignId: string; alreadyRunning: boolean }> {
+  const res = await fetch("/api/campaigns", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ clientIds }),
+  });
+  const data = await res.json();
+  if (res.status === 409 && data.campaignId) {
+    return { campaignId: data.campaignId, alreadyRunning: true };
+  }
+  if (!res.ok) throw new Error(data.error ?? "Falha ao iniciar disparo.");
+  return { campaignId: data.campaignId, alreadyRunning: false };
+}
+
 export default function HomePage() {
-  const [clients, setClients] = useState<Client[]>([]);
+  const { data: clients = [] } = useQuery({
+    queryKey: ["clients"],
+    queryFn: fetchClients,
+  });
+  const { data: initialCampaignId } = useQuery({
+    queryKey: ["active-campaign"],
+    queryFn: fetchActiveCampaignId,
+  });
+
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [activeCampaignId, setActiveCampaignId] = useState<string | null>(
     null
   );
-  const [starting, setStarting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [seededValue, setSeededValue] = useState<string | null | undefined>(
+    undefined
+  );
+  const startMutation = useMutation({ mutationFn: startCampaign });
 
-  useEffect(() => {
-    fetch("/api/clients")
-      .then((res) => res.json())
-      .then((data) => setClients(data.clients ?? []));
-
-    fetch("/api/campaigns")
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.campaign) setActiveCampaignId(data.campaign.id);
-      });
-  }, []);
+  if (initialCampaignId !== undefined && initialCampaignId !== seededValue) {
+    setSeededValue(initialCampaignId);
+    setActiveCampaignId(initialCampaignId);
+  }
 
   function toggleSelected(id: string) {
     setSelectedIds((prev) => {
@@ -40,33 +72,19 @@ export default function HomePage() {
 
   function toggleSelectAll() {
     setSelectedIds((prev) =>
-      prev.size === clients.length ? new Set() : new Set(clients.map((c) => c.id))
+      prev.size === clients.length
+        ? new Set()
+        : new Set(clients.map((c) => c.id))
     );
   }
 
-  async function handleStart() {
-    setError(null);
-    setStarting(true);
-    try {
-      const res = await fetch("/api/campaigns", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ clientIds: Array.from(selectedIds) }),
-      });
-      const data = await res.json();
-      if (res.status === 409 && data.campaignId) {
-        setActiveCampaignId(data.campaignId);
-        return;
-      }
-      if (!res.ok) {
-        setError(data.error ?? "Falha ao iniciar disparo.");
-        return;
-      }
-      setActiveCampaignId(data.campaignId);
-      setSelectedIds(new Set());
-    } finally {
-      setStarting(false);
-    }
+  function handleStart() {
+    startMutation.mutate(Array.from(selectedIds), {
+      onSuccess: (result) => {
+        setActiveCampaignId(result.campaignId);
+        if (!result.alreadyRunning) setSelectedIds(new Set());
+      },
+    });
   }
 
   function handleCampaignDone() {
@@ -87,13 +105,19 @@ export default function HomePage() {
             <Button
               onClick={handleStart}
               disabled={
-                starting || selectedIds.size === 0 || activeCampaignId !== null
+                startMutation.isPending ||
+                selectedIds.size === 0 ||
+                activeCampaignId !== null
               }
               className="w-full"
             >
-              {starting ? "Enviando…" : "Enviar"}
+              {startMutation.isPending ? "Enviando…" : "Enviar"}
             </Button>
-            {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
+            {startMutation.isError && (
+              <p className="mt-3 text-sm text-red-600">
+                {startMutation.error.message}
+              </p>
+            )}
             {activeCampaignId && (
               <div className="mt-4 border-t border-zinc-200 pt-4 dark:border-zinc-800">
                 <h2 className="mb-2 text-sm font-semibold text-zinc-900 dark:text-zinc-50">
@@ -114,7 +138,7 @@ export default function HomePage() {
           Clientes
         </h2>
         <div className="mb-4">
-          <ClientForm onAdded={(c) => setClients((prev) => [c, ...prev])} />
+          <ClientForm />
         </div>
         <ClientList
           clients={clients}

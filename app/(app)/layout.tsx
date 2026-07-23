@@ -23,9 +23,6 @@ export default async function AppLayout({
     .limit(1);
 
   if (!user) {
-    // Session references a user that no longer exists (deleted account,
-    // stale/orphaned cookie from a reset DB) — clear it so the browser
-    // stops sending a dead session on every request.
     await clearSessionCookie();
     redirect("/login");
   }

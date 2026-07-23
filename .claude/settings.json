@@ -10,7 +10,12 @@
       "Bash(curl -s -X POST http://localhost:3000/api/auth/signup -H 'Content-Type: application/json' -d '{\"name\":\"Del Test\",\"email\":\"__TRACKED_VAR__\",\"password\":\"supersecret123\"}')",
       "Bash(curl -s -c /tmp/cookies.txt -b /tmp/cookies.txt -X POST http://localhost:3000/api/clients -H \"Content-Type: application/json\" -d '{\"name\":\"Cliente X\",\"email\":\"clientex@example.com\"}')",
       "Bash(curl -s -X DELETE -b /tmp/cookies.txt http://localhost:3000/api/settings/account -H \"Content-Type: application/json\" -d '{\"password\":\"wrongpassword\"}')",
-      "Bash(curl -s -X DELETE -b /tmp/cookies.txt http://localhost:3000/api/settings/account -H \"Content-Type: application/json\" -d '{\"password\":\"supersecret123\"}')"
+      "Bash(curl -s -X DELETE -b /tmp/cookies.txt http://localhost:3000/api/settings/account -H \"Content-Type: application/json\" -d '{\"password\":\"supersecret123\"}')",
+      "Bash(grep -n \"//\\\\|/\\\\*\" drizzle.config.ts eslint.config.mjs postcss.config.mjs app/globals.css docker-compose.yml)",
+      "Bash(curl -s -c /tmp/cookies.txt -b /tmp/cookies.txt -X POST http://localhost:3000/api/clients -H \"Content-Type: application/json\" -d '{\"name\":\"Cliente RQ1\",\"email\":\"rqclient1@example.com\"}')",
+      "Bash(curl -s -c /tmp/cookies.txt -b /tmp/cookies.txt -X POST http://localhost:3000/api/clients -H \"Content-Type: application/json\" -d '{\"name\":\"Cliente RQ2\",\"email\":\"rqclient2@example.com\"}')",
+      "Bash(curl -s -c /tmp/cookies.txt -b /tmp/cookies.txt -X PUT http://localhost:3000/api/email-body -H \"Content-Type: application/json\" -d '{\"subject\":\"RQ Teste\",\"bodyText\":\"Corpo RQ\"}')",
+      "Bash(curl -s -c /tmp/cookies.txt -b /tmp/cookies.txt -X PUT http://localhost:3000/api/settings -H \"Content-Type: application/json\" -d '{\"gmailUser\":\"fake.rq@gmail.com\",\"gmailAppPassword\":\"fakepass1234\",\"senderName\":\"RQ Sender\"}')"
     ]
   }
 }

@@ -6,7 +6,7 @@ import { trustedDevices } from "@/lib/db/schema";
 import { sha256Hex } from "@/lib/crypto";
 
 export const TRUSTED_DEVICE_COOKIE_NAME = "trusted_device";
-const TRUSTED_DEVICE_MAX_AGE_SECONDS = 60 * 60 * 24 * 60; // 60 days
+const TRUSTED_DEVICE_MAX_AGE_SECONDS = 60 * 60 * 24 * 60;
 
 export async function isDeviceTrusted(userId: string): Promise<boolean> {
   const store = await cookies();

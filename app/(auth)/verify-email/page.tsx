@@ -1,11 +1,22 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useRef } from "react";
 import { useSearchParams } from "next/navigation";
+import { useMutation } from "@tanstack/react-query";
 import Link from "next/link";
 import { Card } from "@/components/ui/Card";
 
-type Status = "loading" | "success" | "error";
+async function verifyEmail(token: string) {
+  if (!token) throw new Error("Link inválido.");
+  const res = await fetch("/api/auth/verify-email", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ token }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error ?? "Falha ao confirmar e-mail.");
+  return data;
+}
 
 export default function VerifyEmailPage() {
   return (
@@ -25,57 +36,27 @@ export default function VerifyEmailPage() {
 
 function VerifyEmailContent() {
   const searchParams = useSearchParams();
-  const [status, setStatus] = useState<Status>("loading");
-  const [error, setError] = useState<string | null>(null);
+  const mutation = useMutation({ mutationFn: verifyEmail });
+  const { mutate: verify } = mutation;
+  const startedRef = useRef(false);
 
   useEffect(() => {
-    let cancelled = false;
-    const token = searchParams.get("token");
-
-    const result = token
-      ? fetch("/api/auth/verify-email", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ token }),
-        }).then(async (res) => ({
-          ok: res.ok,
-          error: (await res.json()).error as string | undefined,
-        }))
-      : Promise.resolve({ ok: false, error: "Link inválido." });
-
-    result
-      .then(({ ok, error: apiError }) => {
-        if (cancelled) return;
-        if (!ok) {
-          setError(apiError ?? "Falha ao confirmar e-mail.");
-          setStatus("error");
-          return;
-        }
-        setStatus("success");
-      })
-      .catch(() => {
-        if (!cancelled) {
-          setError("Falha ao confirmar e-mail.");
-          setStatus("error");
-        }
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [searchParams]);
+    if (startedRef.current) return;
+    startedRef.current = true;
+    verify(searchParams.get("token") ?? "");
+  }, [searchParams, verify]);
 
   return (
     <Card>
       <h1 className="mb-4 text-xl font-semibold text-zinc-900 dark:text-zinc-50">
         Confirmação de e-mail
       </h1>
-      {status === "loading" && (
+      {mutation.isPending && (
         <p className="text-sm text-zinc-600 dark:text-zinc-400">
           Confirmando…
         </p>
       )}
-      {status === "success" && (
+      {mutation.isSuccess && (
         <>
           <p className="mb-4 text-sm text-green-600">
             E-mail confirmado com sucesso! Você já pode entrar.
@@ -85,9 +66,9 @@ function VerifyEmailContent() {
           </Link>
         </>
       )}
-      {status === "error" && (
+      {mutation.isError && (
         <>
-          <p className="mb-4 text-sm text-red-600">{error}</p>
+          <p className="mb-4 text-sm text-red-600">{mutation.error.message}</p>
           <Link href="/login" className="text-sm font-medium underline">
             Voltar para o login
           </Link>

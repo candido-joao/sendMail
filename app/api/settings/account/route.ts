@@ -51,8 +51,6 @@ export async function DELETE(req: Request) {
 
   await recordAttempt(rateLimitKey, true);
 
-  // Clear rate-limit history tied to this account/e-mail so a future signup
-  // with the same address doesn't inherit a stale lockout.
   await db
     .delete(rateLimitAttempts)
     .where(
@@ -64,9 +62,6 @@ export async function DELETE(req: Request) {
       )
     );
 
-  // Cascades to trusted_devices, send_settings, default_email_body,
-  // clients, campaigns (and send_queue via campaigns) — everything scoped
-  // to this user, including the 2FA secret stored on the row itself.
   await db.delete(users).where(eq(users.id, user.id));
 
   await clearSessionCookie();
