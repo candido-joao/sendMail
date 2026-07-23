@@ -15,7 +15,10 @@
       "Bash(curl -s -c /tmp/cookies.txt -b /tmp/cookies.txt -X POST http://localhost:3000/api/clients -H \"Content-Type: application/json\" -d '{\"name\":\"Cliente RQ1\",\"email\":\"rqclient1@example.com\"}')",
       "Bash(curl -s -c /tmp/cookies.txt -b /tmp/cookies.txt -X POST http://localhost:3000/api/clients -H \"Content-Type: application/json\" -d '{\"name\":\"Cliente RQ2\",\"email\":\"rqclient2@example.com\"}')",
       "Bash(curl -s -c /tmp/cookies.txt -b /tmp/cookies.txt -X PUT http://localhost:3000/api/email-body -H \"Content-Type: application/json\" -d '{\"subject\":\"RQ Teste\",\"bodyText\":\"Corpo RQ\"}')",
-      "Bash(curl -s -c /tmp/cookies.txt -b /tmp/cookies.txt -X PUT http://localhost:3000/api/settings -H \"Content-Type: application/json\" -d '{\"gmailUser\":\"fake.rq@gmail.com\",\"gmailAppPassword\":\"fakepass1234\",\"senderName\":\"RQ Sender\"}')"
+      "Bash(curl -s -c /tmp/cookies.txt -b /tmp/cookies.txt -X PUT http://localhost:3000/api/settings -H \"Content-Type: application/json\" -d '{\"gmailUser\":\"fake.rq@gmail.com\",\"gmailAppPassword\":\"fakepass1234\",\"senderName\":\"RQ Sender\"}')",
+      "Bash(git -C \"d:/Dev/sendMail\" remote -v)",
+      "Bash(git -C \"d:/Dev/sendMail\" status --porcelain=v1)",
+      "Bash(git -C \"d:/Dev/sendMail\" check-ignore -v \"d:/Dev/sendMail/.claude/settings.json\")"
     ]
   }
 }
